@@ -1,6 +1,15 @@
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "MainGui"
-screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local screenGui = game.Players.LocalPlayer:FindFirstChild("MainGui")
+if not screenGui then
+	screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "MainGui"
+	screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+else
+	for _, child in pairs(screenGui:GetChildren()) do
+		if child.Name == "MainFrame" then
+			child:Destroy()
+		end
+	end
+end
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
@@ -10,6 +19,7 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 mainFrame.BackgroundTransparency = 0.2
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
+mainFrame.Visible = true
 
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 12)
@@ -22,9 +32,9 @@ title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 title.BackgroundTransparency = 0.3
 title.BorderSizePixel = 0
-title.Text = "🎭 TestESP GUI 🎭"
+title.Text = "TestESP GUI"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 20
+title.TextSize = 18
 title.Font = Enum.Font.GothamBold
 title.Parent = mainFrame
 
@@ -127,7 +137,7 @@ local function showNotification(text, textColor, soundType, duration)
 
 	game:GetService("Debris"):AddItem(notification, duration)
 
-	wait(duration - 0.3)
+	task.wait(duration - 0.3)
 	local disappearTween = tweenService:Create(notification, 
 		TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 		{BackgroundTransparency = 1, Position = UDim2.new(0.5, -150, 0.85, 0)}
@@ -135,9 +145,26 @@ local function showNotification(text, textColor, soundType, duration)
 	disappearTween:Play()
 end
 
+local menuVisible = true
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.K then
+		menuVisible = not menuVisible
+		mainFrame.Visible = menuVisible
+
+		if menuVisible then
+			showNotification("🔓 Меню показано", Color3.fromRGB(100, 255, 100), "highlight", 1.5)
+		else
+			showNotification("🔒 Меню скрыто\nНажмите K чтобы открыть", Color3.fromRGB(255, 200, 100), "click", 2)
+		end
+	end
+end)
+
 local originalWalkSpeed = 16
 local speedMultiplier = 1
 local speedConnection = nil
+local currentHumanoid = nil
 
 local function updatePlayerSpeed()
 	local player = game.Players.LocalPlayer
@@ -145,6 +172,7 @@ local function updatePlayerSpeed()
 	if character then
 		local humanoid = character:FindFirstChild("Humanoid")
 		if humanoid then
+			currentHumanoid = humanoid
 			humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
 		end
 	end
@@ -157,12 +185,14 @@ local function setupSpeedConnection()
 
 	local player = game.Players.LocalPlayer
 	speedConnection = player.CharacterAdded:Connect(function(character)
-		wait(0.5)
 		local humanoid = character:WaitForChild("Humanoid")
+		currentHumanoid = humanoid
+		task.wait(0.1)
 		humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
 	end)
 end
 
+-- Создание ползунка скорости
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.Size = UDim2.new(0.8, 0, 0, 50)
@@ -209,6 +239,7 @@ sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 sliderButton.Text = ""
 sliderButton.BorderSizePixel = 0
 sliderButton.Parent = sliderBg
+
 local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(1, 0)
 buttonCorner.Parent = sliderButton
@@ -282,14 +313,14 @@ local function highlightAllPlayers()
 				activeHighlights[player] = highlight
 				playersFound = playersFound + 1
 
-				spawn(function()
+				task.spawn(function()
 					local t = 0
 					while highlight and highlight.Parent do
 						t = t + 0.05
 						local intensity = (math.sin(t * 8) + 1) / 2
 						highlight.FillTransparency = 0.3 + (intensity * 0.3)
 						highlight.OutlineTransparency = 0.2 + (intensity * 0.3)
-						wait(0.05)
+						task.wait(0.05)
 					end
 				end)
 			end
@@ -387,7 +418,7 @@ end)
 
 game.Players.PlayerAdded:Connect(function(player)
 	if isHighlightActive then
-		wait(1)
+		task.wait(1)
 		if player.Character then
 			local highlight = Instance.new("Highlight")
 			highlight.Name = "PlayerHighlight_" .. player.Name
