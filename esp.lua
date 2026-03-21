@@ -4,8 +4,8 @@ screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 160)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -80)
+mainFrame.Size = UDim2.new(0, 300, 0, 210)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -105)
 mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 mainFrame.BackgroundTransparency = 0.2
 mainFrame.BorderSizePixel = 0
@@ -135,6 +135,121 @@ local function showNotification(text, textColor, soundType, duration)
 	disappearTween:Play()
 end
 
+local originalWalkSpeed = 16
+local speedMultiplier = 1
+local speedConnection = nil
+
+local function updatePlayerSpeed()
+	local player = game.Players.LocalPlayer
+	local character = player.Character
+	if character then
+		local humanoid = character:FindFirstChild("Humanoid")
+		if humanoid then
+			humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
+		end
+	end
+end
+
+local function setupSpeedConnection()
+	if speedConnection then
+		speedConnection:Disconnect()
+	end
+
+	local player = game.Players.LocalPlayer
+	speedConnection = player.CharacterAdded:Connect(function(character)
+		wait(0.5)
+		local humanoid = character:WaitForChild("Humanoid")
+		humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
+	end)
+end
+
+local speedFrame = Instance.new("Frame")
+speedFrame.Name = "SpeedFrame"
+speedFrame.Size = UDim2.new(0.8, 0, 0, 50)
+speedFrame.Position = UDim2.new(0.1, 0, 0, 150)
+speedFrame.BackgroundTransparency = 1
+speedFrame.Parent = mainFrame
+
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(1, 0, 0, 20)
+speedLabel.Position = UDim2.new(0, 0, 0, 0)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "⚡ Скорость: 1x"
+speedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedLabel.TextSize = 14
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = speedFrame
+
+local sliderBg = Instance.new("Frame")
+sliderBg.Size = UDim2.new(1, 0, 0, 4)
+sliderBg.Position = UDim2.new(0, 0, 0, 25)
+sliderBg.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+sliderBg.BorderSizePixel = 0
+sliderBg.Parent = speedFrame
+
+local sliderCorner = Instance.new("UICorner")
+sliderCorner.CornerRadius = UDim.new(0, 2)
+sliderCorner.Parent = sliderBg
+
+local sliderFill = Instance.new("Frame")
+sliderFill.Size = UDim2.new(0.2, 0, 1, 0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+sliderFill.BorderSizePixel = 0
+sliderFill.Parent = sliderBg
+
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(0, 2)
+fillCorner.Parent = sliderFill
+
+local sliderButton = Instance.new("TextButton")
+sliderButton.Size = UDim2.new(0, 16, 0, 16)
+sliderButton.Position = UDim2.new(0.2, -8, 0, -6)
+sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sliderButton.Text = ""
+sliderButton.BorderSizePixel = 0
+sliderButton.Parent = sliderBg
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(1, 0)
+buttonCorner.Parent = sliderButton
+
+local speedValue = 1
+local draggingSpeed = false
+
+local function updateSpeed(value)
+	speedValue = math.clamp(value, 1, 5)
+	local percent = (speedValue - 1) / 4
+	sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+	sliderButton.Position = UDim2.new(percent, -8, 0, -6)
+	speedLabel.Text = string.format("⚡ Скорость: %.1fx", speedValue)
+
+	speedMultiplier = speedValue
+	updatePlayerSpeed()
+end
+
+sliderButton.MouseButton1Down:Connect(function()
+	draggingSpeed = true
+	playSound("click")
+end)
+
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		draggingSpeed = false
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if draggingSpeed and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local mousePos = input.Position.X
+		local sliderAbsPos = sliderBg.AbsolutePosition.X
+		local sliderWidth = sliderBg.AbsoluteSize.X
+
+		local relativePos = math.clamp((mousePos - sliderAbsPos) / sliderWidth, 0, 1)
+		local newSpeed = 1 + (relativePos * 4)
+		updateSpeed(newSpeed)
+	end
+end)
+
 local activeHighlights = {}
 
 local function highlightAllPlayers()
@@ -246,7 +361,6 @@ end
 local button1 = createButton("Button1", "🔍 Подсветка игроков", 55, Color3.fromRGB(80, 120, 80))
 local button2 = createButton("Button2", "❌ Отключить подсветку", 105, Color3.fromRGB(80, 80, 120))
 
-
 local isHighlightActive = false
 
 button1.MouseButton1Click:Connect(function()
@@ -324,3 +438,6 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
 			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 	end
 end)
+
+setupSpeedConnection()
+updatePlayerSpeed()
