@@ -148,11 +148,11 @@ end
 local menuVisible = true
 game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
-
+	
 	if input.KeyCode == Enum.KeyCode.K then
 		menuVisible = not menuVisible
 		mainFrame.Visible = menuVisible
-
+		
 		if menuVisible then
 			showNotification("🔓 Меню показано", Color3.fromRGB(100, 255, 100), "highlight", 1.5)
 		else
@@ -164,7 +164,6 @@ end)
 local originalWalkSpeed = 16
 local speedMultiplier = 1
 local speedConnection = nil
-local currentHumanoid = nil
 
 local function updatePlayerSpeed()
 	local player = game.Players.LocalPlayer
@@ -172,7 +171,6 @@ local function updatePlayerSpeed()
 	if character then
 		local humanoid = character:FindFirstChild("Humanoid")
 		if humanoid then
-			currentHumanoid = humanoid
 			humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
 		end
 	end
@@ -182,17 +180,15 @@ local function setupSpeedConnection()
 	if speedConnection then
 		speedConnection:Disconnect()
 	end
-
+	
 	local player = game.Players.LocalPlayer
 	speedConnection = player.CharacterAdded:Connect(function(character)
 		local humanoid = character:WaitForChild("Humanoid")
-		currentHumanoid = humanoid
 		task.wait(0.1)
 		humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
 	end)
 end
 
--- Создание ползунка скорости
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.Size = UDim2.new(0.8, 0, 0, 50)
@@ -253,7 +249,7 @@ local function updateSpeed(value)
 	sliderFill.Size = UDim2.new(percent, 0, 1, 0)
 	sliderButton.Position = UDim2.new(percent, -8, 0, -6)
 	speedLabel.Text = string.format("⚡ Скорость: %.1fx", speedValue)
-
+	
 	speedMultiplier = speedValue
 	updatePlayerSpeed()
 end
@@ -274,7 +270,7 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
 		local mousePos = input.Position.X
 		local sliderAbsPos = sliderBg.AbsolutePosition.X
 		local sliderWidth = sliderBg.AbsoluteSize.X
-
+		
 		local relativePos = math.clamp((mousePos - sliderAbsPos) / sliderWidth, 0, 1)
 		local newSpeed = 1 + (relativePos * 4)
 		updateSpeed(newSpeed)
@@ -282,53 +278,70 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
 end)
 
 local activeHighlights = {}
+local isHighlightActive = false
+local updateLoop = nil
 
-local function highlightAllPlayers()
-	for _, highlight in pairs(activeHighlights) do
-		if highlight and highlight.Parent then
-			highlight:Destroy()
+local function addHighlightToPlayer(player)
+	if not isHighlightActive then return end
+	if player == game.Players.LocalPlayer then return end
+	
+	local character = player.Character
+	if character and character:FindFirstChild("HumanoidRootPart") then
+		if activeHighlights[player] then
+			activeHighlights[player]:Destroy()
 		end
+		
+		-- Создаем новую
+		local highlight = Instance.new("Highlight")
+		highlight.Parent = character
+		highlight.FillColor = Color3.fromRGB(255, 0, 0)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		highlight.OutlineTransparency = 0.3
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		
+		activeHighlights[player] = highlight
 	end
-	activeHighlights = {}
+end
 
+local function refreshAllHighlights()
+	if not isHighlightActive then return end
+	
 	local localPlayer = game.Players.LocalPlayer
-	local character = localPlayer.Character
-	if not character or not character.Parent then return end
-
-	local playersFound = 0
-
+	
 	for _, player in pairs(game.Players:GetPlayers()) do
 		if player ~= localPlayer then
-			local playerChar = player.Character
-			if playerChar and playerChar:FindFirstChild("HumanoidRootPart") then
-				local highlight = Instance.new("Highlight")
-				highlight.Name = "PlayerHighlight_" .. player.Name
-				highlight.Parent = playerChar
-				highlight.FillColor = Color3.fromRGB(255, 0, 0)
-				highlight.FillTransparency = 0.5
-				highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-				highlight.OutlineTransparency = 0.3
-				highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-
-				activeHighlights[player] = highlight
-				playersFound = playersFound + 1
-
-				task.spawn(function()
-					local t = 0
-					while highlight and highlight.Parent do
-						t = t + 0.05
-						local intensity = (math.sin(t * 8) + 1) / 2
-						highlight.FillTransparency = 0.3 + (intensity * 0.3)
-						highlight.OutlineTransparency = 0.2 + (intensity * 0.3)
-						task.wait(0.05)
-					end
-				end)
-			end
+			addHighlightToPlayer(player)
 		end
 	end
+end
 
+local function highlightAllPlayers()
+	if isHighlightActive then return end
+	
+	isHighlightActive = true
+	
+	refreshAllHighlights()
+	
+	if updateLoop then return end
+	
+	updateLoop = task.spawn(function()
+		while isHighlightActive do
+			task.wait(0.5)
+			refreshAllHighlights()
+		end
+		updateLoop = nil
+	end)
+	
+	local playersFound = 0
+	for _, player in pairs(game.Players:GetPlayers()) do
+		if player ~= game.Players.LocalPlayer then
+			playersFound = playersFound + 1
+		end
+	end
+	
 	if playersFound > 0 then
-		showNotification("🔍 Найдено игроков: " .. playersFound .. "!\nПодсветка активирована", 
+		showNotification("🔍 Подсветка активирована!\nОбновляется каждые 0.5 сек", 
 			Color3.fromRGB(100, 255, 100), "highlight", 3)
 	else
 		showNotification("⚠️ Других игроков не найдено!", 
@@ -337,19 +350,17 @@ local function highlightAllPlayers()
 end
 
 local function clearHighlights()
-	local count = 0
+	isHighlightActive = false
+	
 	for player, highlight in pairs(activeHighlights) do
 		if highlight and highlight.Parent then
 			highlight:Destroy()
-			count = count + 1
 		end
 	end
 	activeHighlights = {}
-
-	if count > 0 then
-		showNotification("❌ Подсветка отключена\n(было подсвечено " .. count .. " игроков)", 
-			Color3.fromRGB(255, 255, 255), "disable", 2)
-	end
+	
+	showNotification("❌ Подсветка отключена", 
+		Color3.fromRGB(255, 255, 255), "disable", 2)
 end
 
 local function createButton(name, text, yPosition, clickColor)
@@ -392,14 +403,9 @@ end
 local button1 = createButton("Button1", "🔍 Подсветка игроков", 55, Color3.fromRGB(80, 120, 80))
 local button2 = createButton("Button2", "❌ Отключить подсветку", 105, Color3.fromRGB(80, 80, 120))
 
-local isHighlightActive = false
-
 button1.MouseButton1Click:Connect(function()
-	print("Активирована подсветка игроков!")
-
 	if not isHighlightActive then
 		highlightAllPlayers()
-		isHighlightActive = true
 		button1.BackgroundColor3 = Color3.fromRGB(80, 150, 80)
 		button1.Text = "✅ Подсветка активна"
 	else
@@ -409,38 +415,15 @@ button1.MouseButton1Click:Connect(function()
 end)
 
 button2.MouseButton1Click:Connect(function()
-	print("Подсветка отключена!")
 	clearHighlights()
-	isHighlightActive = false
 	button1.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 	button1.Text = "🔍 Подсветка игроков"
 end)
 
 game.Players.PlayerAdded:Connect(function(player)
 	if isHighlightActive then
-		task.wait(1)
-		if player.Character then
-			local highlight = Instance.new("Highlight")
-			highlight.Name = "PlayerHighlight_" .. player.Name
-			highlight.Parent = player.Character
-			highlight.FillColor = Color3.fromRGB(255, 0, 0)
-			highlight.FillTransparency = 0.5
-			highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-			highlight.OutlineTransparency = 0.3
-			highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-
-			activeHighlights[player] = highlight
-
-			showNotification("✨ Новый игрок присоединился!\nАвтоматически подсвечен", 
-				Color3.fromRGB(100, 255, 100), "highlight", 2)
-		end
-	end
-end)
-
-game.Players.PlayerRemoving:Connect(function(player)
-	if activeHighlights[player] then
-		activeHighlights[player]:Destroy()
-		activeHighlights[player] = nil
+		showNotification("✨ Новый игрок присоединился!\nАвтоматически подсвечен", 
+			Color3.fromRGB(100, 255, 100), "highlight", 2)
 	end
 end)
 
