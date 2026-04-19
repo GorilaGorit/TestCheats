@@ -1,46 +1,40 @@
-local screenGui = game.Players.LocalPlayer:FindFirstChild("MainGui")
-if not screenGui then
-	screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "MainGui"
-	screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-else
-	for _, child in pairs(screenGui:GetChildren()) do
-		if child.Name == "MainFrame" then
-			child:Destroy()
-		end
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MainGui"
+screenGui.Parent = game:GetService("CoreGui")
+
+for _, child in pairs(screenGui:GetChildren()) do
+	if child.Name == "MainFrame" then
+		child:Destroy()
 	end
 end
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 300, 0, 210)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -105)
-mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-mainFrame.BackgroundTransparency = 0.2
+mainFrame.Size = UDim2.new(0, 561, 0, 292)
+mainFrame.Position = UDim2.new(0.5, -280, 0.5, -146)
+mainFrame.BackgroundColor3 = Color3.fromHex("#000000")
+mainFrame.BackgroundTransparency = 0.1
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 mainFrame.Visible = true
 
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 12)
-uiCorner.Parent = mainFrame
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0.10, 0)
+mainCorner.Parent = mainFrame
 
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-title.BackgroundTransparency = 0.3
-title.BorderSizePixel = 0
-title.Text = "TestESP GUI"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 18
-title.Font = Enum.Font.GothamBold
-title.Parent = mainFrame
+local uiDragDetector = Instance.new("UIDragDetector")
+uiDragDetector.Parent = mainFrame
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = title
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.Position = UDim2.new(0, 0, 0, 10)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Способности"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 20
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Parent = mainFrame
 
 local function playSound(soundType)
 	local sound = Instance.new("Sound")
@@ -146,18 +140,13 @@ local function showNotification(text, textColor, soundType, duration)
 end
 
 local menuVisible = true
+
 game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	
 	if input.KeyCode == Enum.KeyCode.K then
 		menuVisible = not menuVisible
 		mainFrame.Visible = menuVisible
-		
-		if menuVisible then
-			showNotification("🔓 Меню показано", Color3.fromRGB(100, 255, 100), "highlight", 1.5)
-		else
-			showNotification("🔒 Меню скрыто\nНажмите K чтобы открыть", Color3.fromRGB(255, 200, 100), "click", 2)
-		end
 	end
 end)
 
@@ -192,7 +181,7 @@ end
 local speedFrame = Instance.new("Frame")
 speedFrame.Name = "SpeedFrame"
 speedFrame.Size = UDim2.new(0.8, 0, 0, 50)
-speedFrame.Position = UDim2.new(0.1, 0, 0, 150)
+speedFrame.Position = UDim2.new(0.1, 0, 0, 200)
 speedFrame.BackgroundTransparency = 1
 speedFrame.Parent = mainFrame
 
@@ -291,7 +280,6 @@ local function addHighlightToPlayer(player)
 			activeHighlights[player]:Destroy()
 		end
 		
-		-- Создаем новую
 		local highlight = Instance.new("Highlight")
 		highlight.Parent = character
 		highlight.FillColor = Color3.fromRGB(255, 0, 0)
@@ -320,7 +308,6 @@ local function highlightAllPlayers()
 	if isHighlightActive then return end
 	
 	isHighlightActive = true
-	
 	refreshAllHighlights()
 	
 	if updateLoop then return end
@@ -332,21 +319,6 @@ local function highlightAllPlayers()
 		end
 		updateLoop = nil
 	end)
-	
-	local playersFound = 0
-	for _, player in pairs(game.Players:GetPlayers()) do
-		if player ~= game.Players.LocalPlayer then
-			playersFound = playersFound + 1
-		end
-	end
-	
-	if playersFound > 0 then
-		showNotification("🔍 Подсветка активирована!\nОбновляется каждые 0.5 сек", 
-			Color3.fromRGB(100, 255, 100), "highlight", 3)
-	else
-		showNotification("⚠️ Других игроков не найдено!", 
-			Color3.fromRGB(255, 200, 100), "error", 2)
-	end
 end
 
 local function clearHighlights()
@@ -358,100 +330,74 @@ local function clearHighlights()
 		end
 	end
 	activeHighlights = {}
-	
-	showNotification("❌ Подсветка отключена", 
-		Color3.fromRGB(255, 255, 255), "disable", 2)
 end
 
-local function createButton(name, text, yPosition, clickColor)
-	local button = Instance.new("TextButton")
-	button.Name = name
-	button.Size = UDim2.new(0.8, 0, 0, 40)
-	button.Position = UDim2.new(0.1, 0, 0, yPosition)
-	button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-	button.Text = text
-	button.TextColor3 = Color3.fromRGB(255, 255, 255)
-	button.TextSize = 18
-	button.Font = Enum.Font.Gotham
-	button.BorderSizePixel = 0
-	button.Parent = mainFrame
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0.8, 0, 0, 40)
+toggleButton.Position = UDim2.new(0.1, 0, 0, 80)
+toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+toggleButton.Text = "🔍 Подсветка игроков"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextSize = 18
+toggleButton.Font = Enum.Font.Gotham
+toggleButton.BorderSizePixel = 0
+toggleButton.Parent = mainFrame
 
-	local buttonCorner = Instance.new("UICorner")
-	buttonCorner.CornerRadius = UDim.new(0, 8)
-	buttonCorner.Parent = button
+local toggleButtonCorner = Instance.new("UICorner")
+toggleButtonCorner.CornerRadius = UDim.new(0, 8)
+toggleButtonCorner.Parent = toggleButton
 
-	button.MouseEnter:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
-	end)
+toggleButton.MouseEnter:Connect(function()
+	toggleButton.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
+end)
 
-	button.MouseLeave:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-	end)
-
-	button.MouseButton1Down:Connect(function()
-		button.BackgroundColor3 = clickColor
-		playSound("click")
-	end)
-
-	button.MouseButton1Up:Connect(function()
-		button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-	end)
-
-	return button
-end
-
-local button1 = createButton("Button1", "🔍 Подсветка игроков", 55, Color3.fromRGB(80, 120, 80))
-local button2 = createButton("Button2", "❌ Отключить подсветку", 105, Color3.fromRGB(80, 80, 120))
-
-button1.MouseButton1Click:Connect(function()
-	if not isHighlightActive then
-		highlightAllPlayers()
-		button1.BackgroundColor3 = Color3.fromRGB(80, 150, 80)
-		button1.Text = "✅ Подсветка активна"
+toggleButton.MouseLeave:Connect(function()
+	if isHighlightActive then
+		toggleButton.BackgroundColor3 = Color3.fromRGB(80, 150, 80)
 	else
-		showNotification("⚠️ Подсветка уже активна!\nИспользуйте 2-ю кнопку для отключения", 
-			Color3.fromRGB(255, 200, 100), "error", 2)
+		toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 	end
 end)
 
-button2.MouseButton1Click:Connect(function()
-	clearHighlights()
-	button1.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-	button1.Text = "🔍 Подсветка игроков"
+toggleButton.MouseButton1Down:Connect(function()
+	if isHighlightActive then
+		toggleButton.BackgroundColor3 = Color3.fromRGB(80, 120, 80)
+	else
+		toggleButton.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+	end
+	playSound("click")
+end)
+
+toggleButton.MouseButton1Up:Connect(function()
+	if isHighlightActive then
+		toggleButton.BackgroundColor3 = Color3.fromRGB(80, 150, 80)
+	else
+		toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+	end
+end)
+
+toggleButton.MouseButton1Click:Connect(function()
+	if not isHighlightActive then
+		highlightAllPlayers()
+		toggleButton.BackgroundColor3 = Color3.fromRGB(80, 150, 80)
+		toggleButton.Text = "✅ Подсветка активна"
+		showNotification("✨ Подсветка игроков включена!", Color3.fromRGB(100, 255, 100), "highlight", 2)
+	else
+		clearHighlights()
+		toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+		toggleButton.Text = "🔍 Подсветка игроков"
+		showNotification("❌ Подсветка игроков отключена", Color3.fromRGB(255, 100, 100), "disable", 2)
+	end
 end)
 
 game.Players.PlayerAdded:Connect(function(player)
 	if isHighlightActive then
-		showNotification("✨ Новый игрок присоединился!\nАвтоматически подсвечен", 
-			Color3.fromRGB(100, 255, 100), "highlight", 2)
+		task.wait(1)
+		addHighlightToPlayer(player)
 	end
 end)
 
-local dragging = false
-local dragStart
-local startPos
-
-title.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = mainFrame.Position
-	end
-end)
-
-title.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, 
-			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
 
 setupSpeedConnection()
 updatePlayerSpeed()
