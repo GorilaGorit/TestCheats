@@ -30,10 +30,10 @@ titleLabel.Name = "Title"
 titleLabel.Size = UDim2.new(1, 0, 0, 30)
 titleLabel.Position = UDim2.new(0, 0, 0, 10)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "Способности"
+titleLabel.Text = "MyFirstCheat"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 20
-titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Font = Enum.Font.Montserrat
 titleLabel.Parent = mainFrame
 
 local function playSound(soundType)
